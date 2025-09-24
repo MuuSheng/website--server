@@ -36,5 +36,14 @@ export default defineConfig({
         }
       }
     }
+  },
+  define: {
+    // 为移动端优化
+    __MOBILE__: JSON.stringify(false)
+  },
+  css: {
+    preprocessorOptions: {
+      // 如果使用了预处理器，可以在这里配置
+    }
   }
 })

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import Register from './components/Register.jsx';
 import Login from './components/Login.jsx';
 import TaskManager from './components/TaskManager.jsx';
@@ -15,6 +15,16 @@ function App() {
   const [currentView, setCurrentView] = useState('register');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [activeTab, setActiveTab] = useState('tasks');
+  const [loading, setLoading] = useState(true);
+
+  // 模拟加载状态
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleLogin = () => {
     setIsLoggedIn(true);
@@ -44,6 +54,18 @@ function App() {
       chat: <Chat />
     };
   }, []);
+
+  if (loading) {
+    return (
+      <ThemeProvider>
+        <div className="App">
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+            <div className="loading-spinner"></div>
+          </div>
+        </div>
+      </ThemeProvider>
+    );
+  }
 
   if (!isLoggedIn) {
     return (
