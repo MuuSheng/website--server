@@ -46,16 +46,33 @@ const upload = multer({ storage });
 app.use('/uploads', express.static('uploads'));
 
 // MongoDB 连接
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mywebsite';
 mongoose.connect(MONGODB_URI, {
   // 新版本的MongoDB驱动不再需要这些选项
 }).then(() => {
   console.log('Connected to MongoDB');
-  
+
+  //确保uploads目录存在
+  const fs = require('fs');
+  const path = require('path');
+  const uploadDir = path.join(__dirname, 'uploads');
+
+  // 使用同步方法确保目录存在
+  if (!fs.existsSync(uploadDir)) {
+    try {
+      fs.mkdirSync(uploadDir, { recursive: true });
+      console.log('Created uploads directory at:', uploadDir);
+    } catch (err) {
+      console.error('Failed to create uploads directory:', err);
+    }
+  } else {
+    console.log('Uploads directory already exists at:', uploadDir);
+  }
+
   // 启动服务器
   const PORT = process.env.PORT || 26314;
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
+    console.log('Uploads directory path:', uploadDir);
   });
 }).catch((error) => {
   console.error('MongoDB connection error:', error);
@@ -133,104 +150,77 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 
 // 文件列表路由
 app.get('/api/files', async (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  const uploadDir = path.join(__dirname, 'uploads');
+
   try {
-    //确保uploads目录存在
-    try {
-      await fs.access('uploads');
-    } catch (err) {
-      //如果目录不存在，创建它
-      try {
-      await fs.mkdir('uploads',{recursive: ture});
-    } catch (mkdirErr) {
-      console.error('Error creating uploads directory:', mkdirErr);
+    //检查目录是否存在
+    if (!fs.existsSync(uploadDir)) {
+      console.log('Uploads directory does not exist, creating it...');
+      fs.mkdirSync(uploadDir, { recursive: true });
+      return res.json({ files: [] });
     }
-  }
 
-  let files = [];
-  try {
-    files = await fs.readdir('uploads');
-  } catch (readdireer) {
-    console.error('Error reading uploads directory:', readdirErr);
-    return res.json({ files: [] });
-  }
-  const fileDetails = await Promise.all(
-    files.map(async (file)  => {
+    const files = fs.readdirSync(uploadDir);
+    const fileDetails = [];
+
+    files.forEach(file => {
       try {
-        const stats = await fs.stat('uploads/${file}');
-        reture {
-          name:file,
-          size:stats.size,
-          uploadDate:stats.birthtime,
-          type:stats.isDirectory() ? 'directory' : 'file'
-        };
-      } catch(err) {
-        //如果无法获取文件信息，跳过该文件
-        console.error('Error reading file ${file}:',err);
-        return null;
+        const filePath = path.join(uploadDir, file);
+        const stats = fs.statSync(filePath);
+        if (!stats.isDirectory()) {
+          fileDetails.push({
+            name:file,
+            size:stats.size,
+            uploadDate:stats.birthtime,
+            type: 'file'
+          });
+        }
+      }catch (err) {
+       console.error(`Error reading file ${file}:`, err);
       }
-    })
-  );
-
-    // 过滤掉目录和空值
-    const filteredFiles = fileDetails.filter(file => file && file.type === 'file');
-    
-    res.json({ files: filteredFiles });
-  } catch (error) {
-    console.error('Error reading uploads directory:', error);
-    res.status(500).send('Error reading files'+ error.message);
-  }
-});
+    });
 
 // 图片文件列表路由
 app.get('/api/images', async (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  const uploadDir = path.join(__dirname, 'uploads');
+
   try {
-    //确保uploads目录存在
-    try {
-      await fs.access('uploads');
-    } catch (err) {
-      //如果目录不存在，创建它
+    //检查目录是否存在
+    if (!fs.existsSync(uploadDir)) {
+      console.log('Uploads directory does not exist, creating it...');
+      fs.mkdirSync(uploadDir, { recursive: true });
+      return res.json({ images: [] });
+    }
+
+    const files = fs.readdirSync(uploadDir);
+    const imageFiles = [];
+
+    files.forEach(file => {
       try {
-        await fs.mkdir('uploads', { recursive: true });
-      } catch (mkdirErr) {
-        console.error('Error creating uploads directory:', mkdirErr);
-      }
-    }
-
-    let files = [];
-    try {
-      files = await fs.readdir('uploads');
-    } catch (readdirErr) {
-      console.error('Error reading uploads directory:', readdirErr);
-    }
-
-    const imageFiles = await Promise.all(
-      files.map(async (file) => {
-        try {
-          const stats = await fs.stat(`uploads/${file}`);
-          // 检查文件是否为图片
-          const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(file);
-          if (isImage && !stats.isDirectory()) {
-            return {
-              name: file,
-              size: stats.size,
-              uploadDate: stats.birthtime
-            };
-          }
-        } catch (err) {
-          //如果无法获取文件信息，跳过该文件
-          console.error('Error reading file ${file}:',err);
+        const filePath = path.join(uploadDir, file);
+        const stats = fs.statSync(filePath);
+        // 检查文件是否为图片
+        const isImage = /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(file);
+        if (isImage && !stats.isDirectory()) {
+          imageFiles.push({
+            name: file,
+            size: stats.size,
+            uploadDate: stats.birthtime
+          });
         }
-        return null;
-      })
-    );
-    
-    // 过滤掉非图片文件和空值
-    const filteredImages = imageFiles.filter(file => file !== null);
-    
-    res.json({ images: filteredImages });
+      } catch (err) {
+        console.error(`Error reading file ${file}:`, err);
+      }
+    });
+
+    res.json({ images: imageFiles });
   } catch (error) {
-    console.error('Error in /api/images:', error);
-    res.status(500).send('Error reading images:' + error.message);
+    console.error('Error reading uploads directory:', error);
+    res.status(500).send('Error reading images: ' + error.message);
   }
 });
 
