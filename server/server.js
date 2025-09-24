@@ -139,27 +139,37 @@ app.get('/api/files', async (req, res) => {
       await fs.access('uploads');
     } catch (err) {
       //如果目录不存在，创建它
+      try {
       await fs.mkdir('uploads',{recursive: ture});
+    } catch (mkdirErr) {
+      console.error('Error creating uploads directory:', mkdirErr);
     }
+  }
 
-    const files = await fs.readdir('uploads');
-    const fileDetails = await Promise.all(
-      files.map(async (file)  => {
-        try {
-          const stats = await fs.stat('uploads/${file}');
-          reture {
-            name:file,
-            size:stats.size,
-            uploadDate:stats.birthtime,
-            type:stats.isDirectory() ? 'directory' : 'file'
-          };
-        } catch(err) {
-          //如果无法获取文件信息，跳过该文件
-          console.error('Error reading file ${file}:',err);
-          return null;
-        }
-      })
-    );
+  let files = [];
+  try {
+    files = await fs.readdir('uploads');
+  } catch (readdireer) {
+    console.error('Error reading uploads directory:', readdirErr);
+    return res.json({ files: [] });
+  }
+  const fileDetails = await Promise.all(
+    files.map(async (file)  => {
+      try {
+        const stats = await fs.stat('uploads/${file}');
+        reture {
+          name:file,
+          size:stats.size,
+          uploadDate:stats.birthtime,
+          type:stats.isDirectory() ? 'directory' : 'file'
+        };
+      } catch(err) {
+        //如果无法获取文件信息，跳过该文件
+        console.error('Error reading file ${file}:',err);
+        return null;
+      }
+    })
+  );
 
     // 过滤掉目录和空值
     const filteredFiles = fileDetails.filter(file => file && file.type === 'file');
@@ -179,10 +189,20 @@ app.get('/api/images', async (req, res) => {
       await fs.access('uploads');
     } catch (err) {
       //如果目录不存在，创建它
-      await fs.mkdir('uploads', { recursive: ture});
+      try {
+        await fs.mkdir('uploads', { recursive: true });
+      } catch (mkdirErr) {
+        console.error('Error creating uploads directory:', mkdirErr);
+      }
     }
 
-    const files = await fs.readdir('uploads');
+    let files = [];
+    try {
+      files = await fs.readdir('uploads');
+    } catch (readdirErr) {
+      console.error('Error reading uploads directory:', readdirErr);
+    }
+
     const imageFiles = await Promise.all(
       files.map(async (file) => {
         try {
@@ -209,8 +229,8 @@ app.get('/api/images', async (req, res) => {
     
     res.json({ images: filteredImages });
   } catch (error) {
-    console.error('Error reading uploads directory:', error);
-    res.status(500).send('Error reading images' + error.message);
+    console.error('Error in /api/images:', error);
+    res.status(500).send('Error reading images:' + error.message);
   }
 });
 
