@@ -507,6 +507,7 @@ li p {
 .modal-content {
   position: relative;
   display: flex;
+  flex-direction: column;
   justify-content: center;
   align-items: center;
   width: 100%;
@@ -541,12 +542,23 @@ li p {
   transform: scale(1.1);
 }
 
+.modal-image-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  flex: 1;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
 .modal-image {
   max-width: 90vw;
   max-height: 80vh;
   object-fit: contain;
   border-radius: 8px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  display: block;
 }
 
 .image-info-panel {
@@ -563,20 +575,6 @@ li p {
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
   max-width: 90%;
   text-align: center;
-}
-
-.image-info-panel h3 {
-  margin: 0 0 10px;
-  color: var(--text-primary);
-  font-weight: 600;
-  font-size: 16px;
-  word-break: break-all;
-}
-
-.image-info-panel p {
-  margin: 6px 0;
-  color: var(--text-secondary);
-  font-size: 13px;
 }
 
 /* 导航选项卡 */

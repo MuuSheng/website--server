@@ -39,6 +39,16 @@ const ImageGallery = () => {
     setSelectedImage(null);
   };
 
+  // 下载图片
+  const downloadImage = (imageName) => {
+    const link = document.createElement('a');
+    link.href = `${API_BASE_URL}/uploads/${imageName}`;
+    link.download = imageName;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   // 格式化文件大小
   const formatFileSize = (bytes) => {
     if (bytes === 0) return '0 Bytes';
@@ -71,8 +81,8 @@ const ImageGallery = () => {
       ) : (
         <div className="image-grid">
           {images.map((image, index) => (
-            <div key={index} className="image-item glass-container" onClick={() => openImage(image)}>
-              <div className="image-wrapper">
+            <div key={index} className="image-item glass-container">
+              <div className="image-wrapper" onClick={() => openImage(image)}>
                 <img 
                   src={`${API_BASE_URL}/uploads/${image.name}`} 
                   alt={image.name} 
@@ -89,6 +99,13 @@ const ImageGallery = () => {
                   <span className="file-size">{formatFileSize(image.size)}</span>
                   <span className="upload-date">{formatDate(image.uploadDate)}</span>
                 </p>
+                <button 
+                  onClick={() => downloadImage(image.name)}
+                  className="secondary"
+                  style={{ width: '100%', marginTop: '10px' }}
+                >
+                  下载
+                </button>
               </div>
             </div>
           ))}
@@ -114,6 +131,13 @@ const ImageGallery = () => {
               <h3>{selectedImage.name}</h3>
               <p>大小: {formatFileSize(selectedImage.size)}</p>
               <p>上传时间: {formatDate(selectedImage.uploadDate)}</p>
+              <button 
+                onClick={() => downloadImage(selectedImage.name)}
+                className="secondary"
+                style={{ marginTop: '10px' }}
+              >
+                下载图片
+              </button>
             </div>
           </div>
         </div>
