@@ -210,7 +210,7 @@ app.get('/api/images', async (req, res) => {
     res.json({ images: filteredImages });
   } catch (error) {
     console.error('Error reading uploads directory:', error);
-    res.status(500).send('Error reading images');
+    res.status(500).send('Error reading images' + error.message);
   }
 });
 
