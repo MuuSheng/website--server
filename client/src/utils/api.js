@@ -13,8 +13,8 @@ const getApiBaseUrl = () => {
     if (hostname === 'localhost' || hostname === '127.0.0.1') {
       return 'http://localhost:26314';
     }
-    // 局域网访问时，使用当前主机名和端口
-    return `http://${hostname}:26314`;
+    // 生产环境中，使用Render部署的后端URL
+    return 'https://website-api-louy.onrender.com';
   }
   
   // 默认返回本地地址
