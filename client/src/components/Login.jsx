@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { API_BASE_URL } from '../utils/api';
 import StatusMessage from './StatusMessage';
+import LoadingSpinner from './LoadingSpinner';
 
 const Login = ({ onLogin }) => {
   const [username, setUsername] = useState('');
@@ -15,8 +16,13 @@ const Login = ({ onLogin }) => {
     setError('');
     
     // 验证输入
-    if (!username.trim() || !password) {
-      setError('请输入用户名和密码');
+    if (!username.trim()) {
+      setError('请输入用户名');
+      return;
+    }
+    
+    if (!password) {
+      setError('请输入密码');
       return;
     }
     
@@ -37,7 +43,8 @@ const Login = ({ onLogin }) => {
         localStorage.setItem('username', username);
         onLogin();
       } else {
-        setError('无效的凭据');
+        const text = await response.text();
+        setError(`登录失败: ${text}`);
       }
     } catch (error) {
       setError(`网络错误: ${error.message}`);
@@ -50,6 +57,8 @@ const Login = ({ onLogin }) => {
     <div className="auth-container">
       <h2>登录</h2>
       <StatusMessage type="error" message={error} />
+      
+      {loading && <LoadingSpinner message="登录中..." />}
       
       <form onSubmit={handleSubmit}>
         <div>

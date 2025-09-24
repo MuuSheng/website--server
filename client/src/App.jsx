@@ -6,8 +6,10 @@ import FileUpload from './components/FileUpload.jsx';
 import Chat from './components/Chat.jsx';
 import FileViewer from './components/FileViewer.jsx';
 import ImageGallery from './components/ImageGallery.jsx';
+import AboutMe from './components/AboutMe.jsx';
 import Navigation from './components/Navigation.jsx';
 import WelcomeBubble from './components/WelcomeBubble.jsx';
+import ErrorBoundary from './components/ErrorBoundary.jsx';
 import { ThemeProvider } from './contexts/ThemeContext.jsx';
 import './App.css';
 
@@ -47,11 +49,36 @@ function App() {
   // 使用 useMemo 优化组件渲染
   const renderedComponents = useMemo(() => {
     return {
-      tasks: <TaskManager />,
-      files: <FileUpload />,
-      gallery: <ImageGallery />,
-      viewer: <FileViewer />,
-      chat: <Chat />
+      tasks: (
+        <ErrorBoundary>
+          <TaskManager />
+        </ErrorBoundary>
+      ),
+      files: (
+        <ErrorBoundary>
+          <FileUpload />
+        </ErrorBoundary>
+      ),
+      gallery: (
+        <ErrorBoundary>
+          <ImageGallery />
+        </ErrorBoundary>
+      ),
+      viewer: (
+        <ErrorBoundary>
+          <FileViewer />
+        </ErrorBoundary>
+      ),
+      chat: (
+        <ErrorBoundary>
+          <Chat />
+        </ErrorBoundary>
+      ),
+      about: (
+        <ErrorBoundary>
+          <AboutMe />
+        </ErrorBoundary>
+      )
     };
   }, []);
 
@@ -60,7 +87,7 @@ function App() {
       <ThemeProvider>
         <div className="App">
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            <div className="loading-spinner"></div>
+            <div className="loading-spinner" role="status" aria-label="加载中"></div>
           </div>
         </div>
       </ThemeProvider>
@@ -75,7 +102,9 @@ function App() {
           <div className="glass-container">
             {currentView === 'register' ? (
               <div>
-                <Register />
+                <ErrorBoundary>
+                  <Register />
+                </ErrorBoundary>
                 <p style={{ textAlign: 'center', marginTop: '20px' }}>
                   已有账户？{' '}
                   <button className="secondary" onClick={() => setCurrentView('login')}>登录</button>
@@ -83,7 +112,9 @@ function App() {
               </div>
             ) : (
               <div>
-                <Login onLogin={handleLogin} />
+                <ErrorBoundary>
+                  <Login onLogin={handleLogin} />
+                </ErrorBoundary>
                 <p style={{ textAlign: 'center', marginTop: '20px' }}>
                   没有账户？{' '}
                   <button className="secondary" onClick={() => setCurrentView('register')}>注册</button>
@@ -107,20 +138,20 @@ function App() {
           isLoggedIn={isLoggedIn} 
           onLogout={handleLogout} 
         />
-        <div className="tab-content">
-          <div className={`tab-panel ${activeTab === 'tasks' ? 'active' : ''}`}>
+        <div className="tab-content" role="tabpanel" id={`${activeTab}-panel`}>
+          <div className={`tab-panel ${activeTab === 'tasks' ? 'active' : ''}`} role="tabpanel" hidden={activeTab !== 'tasks'}>
             {activeTab === 'tasks' && renderedComponents.tasks}
           </div>
-          <div className={`tab-panel ${activeTab === 'files' ? 'active' : ''}`}>
+          <div className={`tab-panel ${activeTab === 'files' ? 'active' : ''}`} role="tabpanel" hidden={activeTab !== 'files'}>
             {activeTab === 'files' && renderedComponents.files}
           </div>
-          <div className={`tab-panel ${activeTab === 'gallery' ? 'active' : ''}`}>
+          <div className={`tab-panel ${activeTab === 'gallery' ? 'active' : ''}`} role="tabpanel" hidden={activeTab !== 'gallery'}>
             {activeTab === 'gallery' && renderedComponents.gallery}
           </div>
-          <div className={`tab-panel ${activeTab === 'viewer' ? 'active' : ''}`}>
+          <div className={`tab-panel ${activeTab === 'viewer' ? 'active' : ''}`} role="tabpanel" hidden={activeTab !== 'viewer'}>
             {activeTab === 'viewer' && renderedComponents.viewer}
           </div>
-          <div className={`tab-panel ${activeTab === 'chat' ? 'active' : ''}`}>
+          <div className={`tab-panel ${activeTab === 'chat' ? 'active' : ''}`} role="tabpanel" hidden={activeTab !== 'chat'}>
             {activeTab === 'chat' && renderedComponents.chat}
           </div>
         </div>

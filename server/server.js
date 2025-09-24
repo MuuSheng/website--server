@@ -7,6 +7,10 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const helmet = require('helmet');
+const xss = require('xss');
+const validator = require('./validation');
 
 // 初始化 Express 应用
 const app = express();
@@ -18,12 +22,63 @@ const io = socketIo(server, {
   }
 });
 
+// 设置安全头部
+app.use(helmet());
+
+// 速率限制 - 通用限制
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 100, // 限制每个IP在窗口期内最多100个请求
+  message: '请求过于频繁，请稍后再试',
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+app.use(generalLimiter);
+
+// 速率限制 - 登录/注册限制（更严格）
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15分钟
+  max: 5, // 限制每个IP在窗口期内最多5次登录/注册尝试
+  message: '登录/注册尝试次数过多，请稍后再试',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+});
+
+// 应用到认证路由
+app.use('/api/register', authLimiter);
+app.use('/api/login', authLimiter);
+
 // 中间件
 app.use(express.json());
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : true,
   credentials: true
 }));
+
+// 输入清理中间件
+app.use((req, res, next) => {
+  // 清理请求体中的字符串字段
+  if (req.body && typeof req.body === 'object') {
+    for (const key in req.body) {
+      if (typeof req.body[key] === 'string') {
+        req.body[key] = xss(req.body[key]);
+      }
+    }
+  }
+  
+  // 清理查询参数中的字符串字段
+  if (req.query && typeof req.query === 'object') {
+    for (const key in req.query) {
+      if (typeof req.query[key] === 'string') {
+        req.query[key] = xss(req.query[key]);
+      }
+    }
+  }
+  
+  next();
+});
 
 // 配置文件上传
 const storage = multer.diskStorage({
@@ -103,10 +158,22 @@ app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     console.log('Register request:', { username, password });
     
+    // 验证用户名
+    const usernameValidation = validator.validateUsername(username);
+    if (!usernameValidation.isValid) {
+      return res.status(400).send(usernameValidation.message);
+    }
+    
+    // 验证密码
+    const passwordValidation = validator.validatePassword(password);
+    if (!passwordValidation.isValid) {
+      return res.status(400).send(passwordValidation.message);
+    }
+    
     // 检查用户是否已存在
     const existingUser = await User.findOne({ username });
     if (existingUser) {
-      return res.status(400).send('Username already exists');
+      return res.status(400).send('用户名已存在');
     }
     
     // 加密密码
@@ -114,10 +181,10 @@ app.post('/api/register', async (req, res) => {
     const user = new User({ username, password: hashedPassword });
     await user.save();
     console.log('User registered successfully:', username);
-    res.status(201).send('User registered successfully');
+    res.status(201).send('用户注册成功');
   } catch (error) {
     console.error('Error registering user:', error);
-    res.status(500).send('Error registering user: ' + error.message);
+    res.status(500).send('注册用户时出错: ' + error.message);
   }
 });
 
@@ -125,18 +192,24 @@ app.post('/api/register', async (req, res) => {
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
+    
+    // 验证输入
+    if (!username || !password) {
+      return res.status(400).send('用户名和密码不能为空');
+    }
+    
     const user = await User.findOne({ username });
     if (!user) {
-      return res.status(401).send('Invalid credentials');
+      return res.status(401).send('无效的凭据');
     }
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      return res.status(401).send('Invalid credentials');
+      return res.status(401).send('无效的凭据');
     }
     const token = jwt.sign({ userId: user._id }, JWT_SECRET);
     res.json({ token });
   } catch (error) {
-    res.status(500).send('Error logging in');
+    res.status(500).send('登录时出错');
   }
 });
 
@@ -148,11 +221,12 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
   res.json({ filePath: req.file.path });
 });
 
-// 文件列表路由
+// 文件列表路由（支持搜索）
 app.get('/api/files', (req, res) => {
   const fs = require('fs');
   const path = require('path');
   const uploadDir = path.join(__dirname, 'uploads');
+  const search = req.query.search || '';
 
   try {
     // 检查目录是否存在
@@ -167,6 +241,11 @@ app.get('/api/files', (req, res) => {
 
     files.forEach(file => {
       try {
+        // 如果有搜索词，检查文件名是否匹配
+        if (search && !file.toLowerCase().includes(search.toLowerCase())) {
+          return; // 不匹配搜索词，跳过
+        }
+        
         const filePath = path.join(uploadDir, file);
         const stats = fs.statSync(filePath);
         if (!stats.isDirectory()) {
@@ -238,21 +317,60 @@ app.get('/api/images', (req, res) => {
 app.post('/api/tasks', async (req, res) => {
   try {
     const { title, description } = req.body;
+    
+    // 验证任务标题
+    const titleValidation = validator.validateTaskTitle(title);
+    if (!titleValidation.isValid) {
+      return res.status(400).send(titleValidation.message);
+    }
+    
+    // 验证任务描述
+    const descriptionValidation = validator.validateTaskDescription(description);
+    if (!descriptionValidation.isValid) {
+      return res.status(400).send(descriptionValidation.message);
+    }
+    
     const task = new Task({ title, description, completed: false });
     await task.save();
     res.status(201).json(task);
   } catch (error) {
-    res.status(500).send('Error creating task');
+    res.status(500).send('创建任务时出错');
   }
 });
 
-// 获取所有任务
+// 获取所有任务（支持分页和搜索）
 app.get('/api/tasks', async (req, res) => {
   try {
-    const tasks = await Task.find();
-    res.json(tasks);
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search || '';
+    const skip = (page - 1) * limit;
+    
+    // 构建搜索条件
+    const searchFilter = search 
+      ? { 
+          $or: [
+            { title: { $regex: search, $options: 'i' } },
+            { description: { $regex: search, $options: 'i' } }
+          ]
+        } 
+      : {};
+    
+    const tasks = await Task.find(searchFilter).skip(skip).limit(limit);
+    const totalTasks = await Task.countDocuments(searchFilter);
+    
+    res.json({
+      tasks,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalTasks / limit),
+        totalTasks,
+        hasNextPage: page < Math.ceil(totalTasks / limit),
+        hasPrevPage: page > 1
+      }
+    });
   } catch (error) {
-    res.status(500).send('Error fetching tasks');
+    res.status(500).send('获取任务时出错');
   }
 });
 
@@ -261,10 +379,35 @@ app.put('/api/tasks/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const { title, description, completed } = req.body;
+    
+    // 如果提供了标题，则验证它
+    if (title !== undefined) {
+      const titleValidation = validator.validateTaskTitle(title);
+      if (!titleValidation.isValid) {
+        return res.status(400).send(titleValidation.message);
+      }
+    }
+    
+    // 如果提供了描述，则验证它
+    if (description !== undefined) {
+      const descriptionValidation = validator.validateTaskDescription(description);
+      if (!descriptionValidation.isValid) {
+        return res.status(400).send(descriptionValidation.message);
+      }
+    }
+    
+    // 验证completed字段（如果提供）
+    if (completed !== undefined && typeof completed !== 'boolean') {
+      return res.status(400).send('completed字段必须是布尔值');
+    }
+    
     const task = await Task.findByIdAndUpdate(id, { title, description, completed }, { new: true });
+    if (!task) {
+      return res.status(404).send('任务未找到');
+    }
     res.json(task);
   } catch (error) {
-    res.status(500).send('Error updating task');
+    res.status(500).send('更新任务时出错');
   }
 });
 

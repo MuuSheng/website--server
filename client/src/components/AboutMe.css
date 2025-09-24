@@ -1,0 +1,45 @@
+.about-me-container {
+  max-width: 800px;
+  margin: 30px auto;
+  padding: 24px;
+}
+
+.about-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.about-section h3 {
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  font-size: 20px;
+}
+
+.about-section p {
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0 0 10px 0;
+}
+
+.about-section ul {
+  color: var(--text-secondary);
+  padding-left: 20px;
+  margin: 0;
+}
+
+.about-section li {
+  margin-bottom: 8px;
+  line-height: 1.5;
+}
+
+@media (max-width: 768px) {
+  .about-me-container {
+    padding: 16px;
+    margin: 20px auto;
+  }
+  
+  .about-section h3 {
+    font-size: 18px;
+  }
+}

@@ -1,23 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../utils/api';
 import StatusMessage from './StatusMessage';
+import LoadingSpinner from './LoadingSpinner';
 
 const FileViewer = () => {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     fetchFiles();
   }, []);
 
-  const fetchFiles = async () => {
+  const fetchFiles = async (search = '') => {
     try {
       setLoading(true);
       setError('');
       
       // 获取上传目录中的文件列表
-      const response = await fetch(`${API_BASE_URL}/api/files`);
+      const searchParam = search ? `?search=${encodeURIComponent(search)}` : '';
+      const response = await fetch(`${API_BASE_URL}/api/files${searchParam}`);
       if (response.ok) {
         const data = await response.json();
         setFiles(data.files);
@@ -31,6 +34,11 @@ const FileViewer = () => {
     }
   };
 
+  const handleSearch = (e) => {
+    e.preventDefault();
+    fetchFiles(searchTerm);
+  };
+
   // 检查文件是否为图片
   const isImageFile = (fileName) => {
     return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName);
@@ -39,9 +47,26 @@ const FileViewer = () => {
   return (
     <div className="file-viewer">
       <h2>已上传文件</h2>
-      <StatusMessage type="error" message={error} onRetry={fetchFiles} />
+      <StatusMessage type="error" message={error} onRetry={() => fetchFiles(searchTerm)} />
       
-      {loading && <div className="loading-spinner"></div>}
+      {loading && <LoadingSpinner message="加载中..." />}
+      
+      {/* 搜索表单 */}
+      <form onSubmit={handleSearch} className="glass-container search-form">
+        <div className="search-input-container">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="搜索文件名..."
+            disabled={loading}
+            className="search-input"
+          />
+          <button type="submit" disabled={loading} className="search-button">
+            搜索
+          </button>
+        </div>
+      </form>
       
       {!loading && files.length === 0 ? (
         <p className="glass-container">暂无上传文件。</p>

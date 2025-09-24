@@ -747,48 +747,68 @@ li p {
   max-width: 800px;
 }
 
-/* 文件输入容器 */
-.file-input-container {
-  position: relative;
+/* 搜索表单样式 */
+.search-form {
+  max-width: 600px;
   margin-bottom: 20px;
 }
 
-/* 隐藏的文件输入 */
-.file-input {
-  position: absolute;
-  left: 0;
-  top: 0;
-  opacity: 0;
-  width: 100%;
-  height: 100%;
-  cursor: pointer;
+.search-input-container {
+  display: flex;
+  gap: 10px;
 }
 
-/* 文件选择按钮 */
-.file-choose-button {
+.search-input {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.search-button {
+  flex: 0 0 auto;
+  padding: 14px 20px;
+}
+
+/* 分页控件样式 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 20px;
+  margin-top: 30px;
   width: 100%;
-  padding: 14px;
-  border: 1px solid var(--border-color);
+}
+
+.pagination-btn {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
   border-radius: 12px;
-  background-color: var(--bg-primary);
-  color: var(--text-primary);
-  font-size: 16px;
-  text-align: left;
   cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  min-height: 44px; /* 符合移动端触摸目标大小 */
+  min-height: 44px;
 }
 
-.file-choose-button:hover {
-  background-color: var(--bg-tertiary);
-  border-color: var(--accent-color);
+.pagination-btn:hover:not(:disabled) {
+  background-color: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
 }
 
-.file-choose-button:disabled {
+.pagination-btn:disabled {
   background-color: var(--bg-tertiary);
   cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.pagination-info {
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 /* 欢迎气泡 */
@@ -917,6 +937,14 @@ li p {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* 拖放状态样式 */
+.drag-over {
+  background-color: var(--accent-color) !important;
+  color: white !important;
+  border-color: var(--accent-color) !important;
+  transform: scale(1.02);
 }
 
 /* 响应式设计 */

@@ -1,6 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { API_BASE_URL } from '../utils/api';
 import StatusMessage from './StatusMessage';
+import LoadingSpinner from './LoadingSpinner';
 
 const FileUpload = () => {
   const [file, setFile] = useState(null);
@@ -8,14 +9,21 @@ const FileUpload = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  const handleFileChange = (file) => {
+    setFile(file);
     // 重置状态
     setError('');
     setSuccess('');
     setUploadStatus('');
+  };
+
+  const handleFileInputChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      handleFileChange(e.target.files[0]);
+    }
   };
 
   const handleUpload = async (e) => {
@@ -67,33 +75,64 @@ const FileUpload = () => {
     fileInputRef.current.click();
   };
 
+  // 拖放事件处理函数
+  const handleDragOver = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+  }, []);
+
+  const handleDrop = useCallback((e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragOver(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileChange(e.dataTransfer.files[0]);
+    }
+  }, []);
+
   return (
     <div className="file-upload">
       <h2>文件上传</h2>
       <StatusMessage type="error" message={error} />
       <StatusMessage type="success" message={success} />
       
-      {loading && <div className="loading-spinner"></div>}
+      {loading && <LoadingSpinner message="上传中..." />}
       
-      <form onSubmit={handleUpload} className="glass-container">
+      <form 
+        onSubmit={handleUpload} 
+        className={`glass-container ${isDragOver ? 'drag-over' : ''}`}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
         <div className="file-input-container">
           <input 
             type="file" 
-            onChange={handleFileChange} 
+            onChange={handleFileInputChange} 
             disabled={loading}
             ref={fileInputRef}
             className="file-input"
           />
-          <button 
-            type="button" 
-            className="file-choose-button"
+          <div 
+            className={`file-choose-button ${isDragOver ? 'drag-over' : ''}`}
             onClick={handleChooseFileClick}
             disabled={loading}
+            aria-label="选择文件或拖放文件到此区域"
           >
-            {file ? file.name : '选择文件'}
-          </button>
+            {file ? file.name : (
+              isDragOver ? '释放文件以上传' : '选择文件或拖放文件到此区域'
+            )}
+          </div>
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || !file} aria-busy={loading}>
           {loading ? '上传中...' : '上传'}
         </button>
       </form>
