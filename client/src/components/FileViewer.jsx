@@ -31,6 +31,11 @@ const FileViewer = () => {
     }
   };
 
+  // 检查文件是否为图片
+  const isImageFile = (fileName) => {
+    return /\.(jpg|jpeg|png|gif|bmp|webp)$/i.test(fileName);
+  };
+
   return (
     <div className="file-viewer">
       <h2>已上传文件</h2>
@@ -47,7 +52,7 @@ const FileViewer = () => {
               <h3>{file.name}</h3>
               <p>大小: {file.size} 字节</p>
               <p>上传时间: {new Date(file.uploadDate).toLocaleString()}</p>
-              {file.type.startsWith('image/') ? (
+              {isImageFile(file.name) ? (
                 <img 
                   src={`${API_BASE_URL}/uploads/${file.name}`} 
                   alt={file.name} 
