@@ -52,17 +52,12 @@
    cd server
    npm run dev
    ```
-   服务器将在 http://localhost:5000 上运行
 
 3. 启动客户端：
    ```bash
    cd client
    npm run dev
    ```
-   客户端将在 http://localhost:5173 上运行
-
-4. 在浏览器中访问 http://localhost:5173 查看应用
-
 ## 功能说明
 
 ### 用户系统
