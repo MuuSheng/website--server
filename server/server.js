@@ -7,7 +7,6 @@ const jwt = require('jsonwebtoken');
 const multer = require('multer');
 const path = require('path');
 const cors = require('cors');
-const fs = require('fs').promises;
 
 // 初始化 Express 应用
 const app = express();
@@ -31,9 +30,10 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = 'uploads';
     // 确保上传目录存在
-    fs.access(uploadDir).catch(() => {
-      fs.mkdir(uploadDir).catch(console.error);
-    });
+    const fs = require('fs');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
@@ -46,16 +46,16 @@ const upload = multer({ storage });
 app.use('/uploads', express.static('uploads'));
 
 // MongoDB 连接
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mywebsite';
 mongoose.connect(MONGODB_URI, {
   // 新版本的MongoDB驱动不再需要这些选项
 }).then(() => {
   console.log('Connected to MongoDB');
-
-  //确保uploads目录存在
+  
+  // 确保uploads目录存在
   const fs = require('fs');
-  const path = require('path');
   const uploadDir = path.join(__dirname, 'uploads');
-
+  
   // 使用同步方法确保目录存在
   if (!fs.existsSync(uploadDir)) {
     try {
@@ -67,7 +67,7 @@ mongoose.connect(MONGODB_URI, {
   } else {
     console.log('Uploads directory already exists at:', uploadDir);
   }
-
+  
   // 启动服务器
   const PORT = process.env.PORT || 26314;
   server.listen(PORT, '0.0.0.0', () => {
@@ -97,7 +97,7 @@ const Task = mongoose.model('Task', taskSchema);
 // JWT 密钥
 const JWT_SECRET = process.env.JWT_SECRET || 'mysecretkey';
 
-// 注册路由应该包含密码加密
+// 注册路由
 app.post('/api/register', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -108,11 +108,11 @@ app.post('/api/register', async (req, res) => {
     if (existingUser) {
       return res.status(400).send('Username already exists');
     }
-    //加密密码
+    
+    // 加密密码
     const hashedPassword = await bcrypt.hash(password, 10);
     const user = new User({ username, password: hashedPassword });
     await user.save();
-
     console.log('User registered successfully:', username);
     res.status(201).send('User registered successfully');
   } catch (error) {
@@ -121,7 +121,7 @@ app.post('/api/register', async (req, res) => {
   }
 });
 
-// 登录路由应该包含密码验证
+// 登录路由
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
@@ -149,13 +149,13 @@ app.post('/api/upload', upload.single('file'), (req, res) => {
 });
 
 // 文件列表路由
-app.get('/api/files', async (req, res) => {
+app.get('/api/files', (req, res) => {
   const fs = require('fs');
   const path = require('path');
   const uploadDir = path.join(__dirname, 'uploads');
 
   try {
-    //检查目录是否存在
+    // 检查目录是否存在
     if (!fs.existsSync(uploadDir)) {
       console.log('Uploads directory does not exist, creating it...');
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -171,25 +171,33 @@ app.get('/api/files', async (req, res) => {
         const stats = fs.statSync(filePath);
         if (!stats.isDirectory()) {
           fileDetails.push({
-            name:file,
-            size:stats.size,
-            uploadDate:stats.birthtime,
+            name: file,
+            size: stats.size,
+            uploadDate: stats.birthtime,
             type: 'file'
           });
         }
-      }catch (err) {
-       console.error(`Error reading file ${file}:`, err);
+      } catch (err) {
+        console.error(`Error reading file ${file}:`, err);
       }
     });
 
+    res.json({ files: fileDetails });
+  } catch (error) {
+    console.error('Error reading uploads directory:', error);
+    // 即使出错也返回空数组而不是500错误
+    res.json({ files: [] });
+  }
+});
+
 // 图片文件列表路由
-app.get('/api/images', async (req, res) => {
+app.get('/api/images', (req, res) => {
   const fs = require('fs');
   const path = require('path');
   const uploadDir = path.join(__dirname, 'uploads');
 
   try {
-    //检查目录是否存在
+    // 检查目录是否存在
     if (!fs.existsSync(uploadDir)) {
       console.log('Uploads directory does not exist, creating it...');
       fs.mkdirSync(uploadDir, { recursive: true });
@@ -220,7 +228,8 @@ app.get('/api/images', async (req, res) => {
     res.json({ images: imageFiles });
   } catch (error) {
     console.error('Error reading uploads directory:', error);
-    res.status(500).send('Error reading images: ' + error.message);
+    // 即使出错也返回空数组而不是500错误
+    res.json({ images: [] });
   }
 });
 
