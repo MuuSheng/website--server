@@ -22,15 +22,65 @@ const io = socketIo(server, {
   }
 });
 
-// 设置安全头部
+// 设置安全头部，但对图片请求放宽限制
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "img-src": ["'self'", "data:", "https:"], // 允许图片从任何HTTPS源加载
+      "img-src": ["'self'", "data:", "https:", "http:"], // 允许图片从任何源加载
     },
+    useDefaults: true,
   },
 }));
+
+// 在静态文件服务之前添加一个简单的日志中间件，记录所有请求
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
+// 提供上传文件的静态访问
+const uploadsPath = path.join(__dirname, 'uploads');
+console.log('Setting up static file serving for uploads directory:', uploadsPath);
+
+// 确保uploads目录存在
+if (!require('fs').existsSync(uploadsPath)) {
+  console.log('Uploads directory does not exist, creating it...');
+  require('fs').mkdirSync(uploadsPath, { recursive: true });
+}
+
+app.use('/uploads', express.static(uploadsPath, {
+  maxAge: '1d', // 设置缓存时间
+  etag: true,   // 启用ETag
+  lastModified: true, // 启用Last-Modified头
+  cacheControl: true, // 启用Cache-Control头
+  dotfiles: 'ignore', // 忽略点文件
+  index: false,       // 禁用目录索引
+  redirect: false     // 禁用重定向
+}));
+
+// 添加一个简单的路由来测试uploads目录是否可访问
+app.get('/uploads-test', (req, res) => {
+  const fs = require('fs');
+  const path = require('path');
+  const uploadDir = path.join(__dirname, 'uploads');
+  
+  try {
+    if (!fs.existsSync(uploadDir)) {
+      return res.json({ status: 'error', message: 'Uploads directory does not exist' });
+    }
+    
+    const files = fs.readdirSync(uploadDir);
+    res.json({ 
+      status: 'success', 
+      message: 'Uploads directory is accessible', 
+      files: files,
+      path: uploadDir
+    });
+  } catch (error) {
+    res.json({ status: 'error', message: error.message });
+  }
+});
 
 // 速率限制 - 通用限制
 const generalLimiter = rateLimit({
@@ -95,11 +145,15 @@ const storage = multer.diskStorage({
     const fs = require('fs');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
+      console.log('Created uploads directory at:', uploadDir);
     }
+    console.log('Saving file to directory:', uploadDir);
     cb(null, uploadDir);
   },
   filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
+    const filename = Date.now() + path.extname(file.originalname);
+    console.log('Saving file with name:', filename);
+    cb(null, filename);
   }
 });
 const upload = multer({ storage });
@@ -107,6 +161,14 @@ const upload = multer({ storage });
 // 提供上传文件的静态访问
 const uploadsPath = path.join(__dirname, 'uploads');
 console.log('Setting up static file serving for uploads directory:', uploadsPath);
+
+// 确保uploads目录存在
+const fs = require('fs');
+if (!fs.existsSync(uploadsPath)) {
+  console.log('Uploads directory does not exist, creating it...');
+  fs.mkdirSync(uploadsPath, { recursive: true });
+}
+
 app.use('/uploads', express.static(uploadsPath, {
   maxAge: '1d', // 设置缓存时间
   etag: true,   // 启用ETag
@@ -115,6 +177,25 @@ app.use('/uploads', express.static(uploadsPath, {
   dotfiles: 'ignore', // 忽略点文件
   index: false,       // 禁用目录索引
   redirect: false     // 禁用重定向
+}));
+
+// 添加一个简单的路由来测试uploads目录是否可访问
+app.get('/uploads-test', (req, res) => {
+  try {
+    if (!fs.existsSync(uploadsPath)) {
+      return res.json({ status: 'error', message: 'Uploads directory does not exist' });
+    }
+    
+    const files = fs.readdirSync(uploadsPath);
+    res.json({ 
+      status: 'success', 
+      message: 'Uploads directory is accessible', 
+      files: files,
+      path: uploadsPath
+    });
+  } catch (error) {
+    res.json({ status: 'error', message: error.message });
+  }
 }));
 
 // MongoDB 连接
