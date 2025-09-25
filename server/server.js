@@ -23,7 +23,14 @@ const io = socketIo(server, {
 });
 
 // 设置安全头部
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "img-src": ["'self'", "data:", "https:"], // 允许图片从任何HTTPS源加载
+    },
+  },
+}));
 
 // 速率限制 - 通用限制
 const generalLimiter = rateLimit({
@@ -99,10 +106,15 @@ const upload = multer({ storage });
 
 // 提供上传文件的静态访问
 const uploadsPath = path.join(__dirname, 'uploads');
+console.log('Setting up static file serving for uploads directory:', uploadsPath);
 app.use('/uploads', express.static(uploadsPath, {
   maxAge: '1d', // 设置缓存时间
   etag: true,   // 启用ETag
-  lastModified: true // 启用Last-Modified头
+  lastModified: true, // 启用Last-Modified头
+  cacheControl: true, // 启用Cache-Control头
+  dotfiles: 'ignore', // 忽略点文件
+  index: false,       // 禁用目录索引
+  redirect: false     // 禁用重定向
 }));
 
 // MongoDB 连接
@@ -132,6 +144,14 @@ mongoose.connect(MONGODB_URI, {
     }
   } else {
     console.log('Uploads directory already exists at:', uploadDir);
+    
+    // 检查目录权限
+    try {
+      const stats = fs.statSync(uploadDir);
+      console.log('Uploads directory permissions:', stats.mode);
+    } catch (err) {
+      console.error('Failed to check uploads directory permissions:', err);
+    }
   }
   
   // 启动服务器
@@ -139,6 +159,14 @@ mongoose.connect(MONGODB_URI, {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
     console.log('Uploads directory path:', uploadDir);
+    
+    // 验证uploads目录中是否有文件
+    try {
+      const files = fs.readdirSync(uploadDir);
+      console.log('Files in uploads directory:', files);
+    } catch (err) {
+      console.error('Failed to read uploads directory:', err);
+    }
   });
 }).catch((error) => {
   console.error('MongoDB connection error:', error);
