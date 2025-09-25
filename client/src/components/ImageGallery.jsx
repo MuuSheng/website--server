@@ -43,8 +43,10 @@ const ImageGallery = ({ isVisible }) => {
 
   // 下载图片
   const downloadImage = (imageName) => {
+    // 检查API_BASE_URL是否以斜杠结尾，避免双斜杠
+    const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL.slice(0, -1) : API_BASE_URL;
     const link = document.createElement('a');
-    link.href = `${API_BASE_URL}/uploads/${imageName}`;
+    link.href = `${baseUrl}/uploads/${imageName}`;
     link.download = imageName;
     document.body.appendChild(link);
     link.click();
@@ -86,10 +88,11 @@ const ImageGallery = ({ isVisible }) => {
             <div key={index} className="image-item glass-container">
               <div className="image-wrapper" onClick={() => openImage(image)}>
                 <img 
-                  src={`${API_BASE_URL}/uploads/${image.name}`} 
+                  src={`${API_BASE_URL.replace(/\/$/, '')}/uploads/${image.name}`} 
                   alt={image.name} 
                   className="gallery-image"
                   onError={(e) => {
+                    console.error('Image load error:', e.target.src);
                     // 图片加载失败时的处理
                     e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjY2Ij5JbWFnZSBOb3QgRm91bmQ8L3RleHQ+PC9zdmc+';
                   }}
@@ -120,10 +123,11 @@ const ImageGallery = ({ isVisible }) => {
             <span className="close" onClick={closeImage}>×</span>
             <div className="modal-image-wrapper">
               <img 
-                src={`${API_BASE_URL}/uploads/${selectedImage.name}`} 
+                src={`${API_BASE_URL.replace(/\/$/, '')}/uploads/${selectedImage.name}`} 
                 alt={selectedImage.name} 
                 className="modal-image"
                 onError={(e) => {
+                  console.error('Modal image load error:', e.target.src);
                   // 图片加载失败时的处理
                   e.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgZmlsbD0iI2NjYyIvPjx0ZXh0IHg9IjUwIiB5PSI1NSIgZm9udC1mYW1pbHk9IkFyaWFsIiBmb250LXNpemU9IjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmaWxsPSIjNjY2Ij5JbWFnZSBOb3QgRm91bmQ8L3RleHQ+PC9zdmc+';
                 }}

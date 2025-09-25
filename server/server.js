@@ -98,7 +98,12 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // 提供上传文件的静态访问
-app.use('/uploads', express.static('uploads'));
+const uploadsPath = path.join(__dirname, 'uploads');
+app.use('/uploads', express.static(uploadsPath, {
+  maxAge: '1d', // 设置缓存时间
+  etag: true,   // 启用ETag
+  lastModified: true // 启用Last-Modified头
+}));
 
 // MongoDB 连接
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mywebsite';
@@ -107,7 +112,7 @@ mongoose.connect(MONGODB_URI, {
 }).then(() => {
   console.log('Connected to MongoDB');
   
-  // 确保uploads目录存在
+  // 确保uploads目录存在并设置正确的权限
   const fs = require('fs');
   const uploadDir = path.join(__dirname, 'uploads');
   
@@ -116,6 +121,12 @@ mongoose.connect(MONGODB_URI, {
     try {
       fs.mkdirSync(uploadDir, { recursive: true });
       console.log('Created uploads directory at:', uploadDir);
+      
+      // 在非Windows系统上设置目录权限
+      if (process.platform !== 'win32') {
+        fs.chmodSync(uploadDir, 0o755);
+        console.log('Set permissions for uploads directory');
+      }
     } catch (err) {
       console.error('Failed to create uploads directory:', err);
     }
