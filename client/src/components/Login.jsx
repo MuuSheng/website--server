@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { API_BASE_URL } from '../utils/api';
+import { apiFetch } from '../utils/api';
 import StatusMessage from './StatusMessage';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -29,11 +29,8 @@ const Login = ({ onLogin }) => {
     setLoading(true);
     
     try {
-      const response = await fetch(`${API_BASE_URL}/api/login`, {
+      const response = await apiFetch('/api/login', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
         body: JSON.stringify({ username, password })
       });
       
