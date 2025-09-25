@@ -196,7 +196,7 @@ app.get('/uploads-test', (req, res) => {
   } catch (error) {
     res.json({ status: 'error', message: error.message });
   }
-}));
+});
 
 // MongoDB 连接
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mywebsite';
@@ -566,4 +566,19 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log(`${socket.username || 'User'} disconnected`);
   });
+});
+
+// 启动服务器
+const PORT = process.env.PORT || 8765;
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server is running on port ${PORT}`);
+  console.log('Uploads directory path:', uploadsPath);
+  
+  // 验证uploads目录中是否有文件
+  try {
+    const files = fs.readdirSync(uploadsPath);
+    console.log('Files in uploads directory:', files);
+  } catch (err) {
+    console.error('Failed to read uploads directory:', err);
+  }
 });
