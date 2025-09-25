@@ -61,28 +61,22 @@ app.use('/uploads', express.static(uploadsPath, {
 
 // 添加一个简单的路由来测试uploads目录是否可访问
 app.get('/uploads-test', (req, res) => {
-  const fs = require('fs');
-  const path = require('path');
-  const uploadDir = path.join(__dirname, 'uploads');
-  
   try {
-    if (!fs.existsSync(uploadDir)) {
+    if (!fs.existsSync(uploadsPath)) {
       return res.json({ status: 'error', message: 'Uploads directory does not exist' });
     }
     
-    const files = fs.readdirSync(uploadDir);
+    const files = fs.readdirSync(uploadsPath);
     res.json({ 
       status: 'success', 
       message: 'Uploads directory is accessible', 
       files: files,
-      path: uploadDir
+      path: uploadsPath
     });
   } catch (error) {
     res.json({ status: 'error', message: error.message });
   }
 });
-
-// 速率限制 - 通用限制
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15分钟
   max: 100, // 限制每个IP在窗口期内最多100个请求
@@ -159,7 +153,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 // 提供上传文件的静态访问
-const uploadsPath = path.join(__dirname, 'uploads');
+// 使用之前已声明的uploadsPath变量
 console.log('Setting up static file serving for uploads directory:', uploadsPath);
 
 // 确保uploads目录存在
@@ -207,28 +201,27 @@ mongoose.connect(MONGODB_URI, {
   
   // 确保uploads目录存在并设置正确的权限
   const fs = require('fs');
-  const uploadDir = path.join(__dirname, 'uploads');
   
   // 使用同步方法确保目录存在
-  if (!fs.existsSync(uploadDir)) {
+  if (!fs.existsSync(uploadsPath)) {
     try {
-      fs.mkdirSync(uploadDir, { recursive: true });
-      console.log('Created uploads directory at:', uploadDir);
+      fs.mkdirSync(uploadsPath, { recursive: true });
+      console.log('Created uploads directory at:', uploadsPath);
       
       // 在非Windows系统上设置目录权限
       if (process.platform !== 'win32') {
-        fs.chmodSync(uploadDir, 0o755);
+        fs.chmodSync(uploadsPath, 0o755);
         console.log('Set permissions for uploads directory');
       }
     } catch (err) {
       console.error('Failed to create uploads directory:', err);
     }
   } else {
-    console.log('Uploads directory already exists at:', uploadDir);
+    console.log('Uploads directory already exists at:', uploadsPath);
     
     // 检查目录权限
     try {
-      const stats = fs.statSync(uploadDir);
+      const stats = fs.statSync(uploadsPath);
       console.log('Uploads directory permissions:', stats.mode);
     } catch (err) {
       console.error('Failed to check uploads directory permissions:', err);
@@ -239,11 +232,11 @@ mongoose.connect(MONGODB_URI, {
   const PORT = process.env.PORT || 8765;
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
-    console.log('Uploads directory path:', uploadDir);
+    console.log('Uploads directory path:', uploadsPath);
     
     // 验证uploads目录中是否有文件
     try {
-      const files = fs.readdirSync(uploadDir);
+      const files = fs.readdirSync(uploadsPath);
       console.log('Files in uploads directory:', files);
     } catch (err) {
       console.error('Failed to read uploads directory:', err);
