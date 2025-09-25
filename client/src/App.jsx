@@ -61,7 +61,7 @@ function App() {
       ),
       gallery: (
         <ErrorBoundary>
-          <ImageGallery />
+          <ImageGallery isVisible={activeTab === 'gallery'} />
         </ErrorBoundary>
       ),
       viewer: (
@@ -80,7 +80,7 @@ function App() {
         </ErrorBoundary>
       )
     };
-  }, []);
+  }, [activeTab]);
 
   if (loading) {
     return (

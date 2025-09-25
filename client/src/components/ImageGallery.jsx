@@ -2,15 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../utils/api';
 import StatusMessage from './StatusMessage';
 
-const ImageGallery = () => {
+const ImageGallery = ({ isVisible }) => {
   const [images, setImages] = useState([]);
   const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetchImages();
-  }, []);
+    if (isVisible) {
+      fetchImages();
+    }
+  }, [isVisible]);
 
   const fetchImages = async () => {
     try {

@@ -83,7 +83,7 @@ app.use((req, res, next) => {
 // 配置文件上传
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    const uploadDir = 'uploads';
+    const uploadDir = path.join(__dirname, 'uploads');
     // 确保上传目录存在
     const fs = require('fs');
     if (!fs.existsSync(uploadDir)) {
@@ -101,7 +101,7 @@ const upload = multer({ storage });
 app.use('/uploads', express.static('uploads'));
 
 // MongoDB 连接
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/mywebsite';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/mywebsite';
 mongoose.connect(MONGODB_URI, {
   // 新版本的MongoDB驱动不再需要这些选项
 }).then(() => {
@@ -124,8 +124,8 @@ mongoose.connect(MONGODB_URI, {
   }
   
   // 启动服务器
-  const PORT = process.env.PORT || 26314;
-  server.listen(PORT, '0.0.0.0', () => {
+  const PORT = process.env.PORT || 8765;
+  server.listen(PORT, '127.0.0.1', () => {
     console.log(`Server is running on port ${PORT}`);
     console.log('Uploads directory path:', uploadDir);
   });
