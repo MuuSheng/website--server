@@ -11,6 +11,7 @@ const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
 const xss = require('xss');
 const validator = require('./validation');
+const fs = require('fs');
 
 // 初始化 Express 应用
 const app = express();
@@ -44,9 +45,9 @@ const uploadsPath = path.join(__dirname, 'uploads');
 console.log('Setting up static file serving for uploads directory:', uploadsPath);
 
 // 确保uploads目录存在
-if (!require('fs').existsSync(uploadsPath)) {
+if (!fs.existsSync(uploadsPath)) {
   console.log('Uploads directory does not exist, creating it...');
-  require('fs').mkdirSync(uploadsPath, { recursive: true });
+  fs.mkdirSync(uploadsPath, { recursive: true });
 }
 
 app.use('/uploads', express.static(uploadsPath, {
@@ -77,15 +78,6 @@ app.get('/uploads-test', (req, res) => {
     res.json({ status: 'error', message: error.message });
   }
 });
-const generalLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15分钟
-  max: 100, // 限制每个IP在窗口期内最多100个请求
-  message: '请求过于频繁，请稍后再试',
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-
-app.use(generalLimiter);
 
 // 速率限制 - 登录/注册限制（更严格）
 const authLimiter = rateLimit({
@@ -136,7 +128,6 @@ const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, 'uploads');
     // 确保上传目录存在
-    const fs = require('fs');
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
       console.log('Created uploads directory at:', uploadDir);
@@ -157,7 +148,6 @@ const upload = multer({ storage });
 console.log('Setting up static file serving for uploads directory:', uploadsPath);
 
 // 确保uploads目录存在
-const fs = require('fs');
 if (!fs.existsSync(uploadsPath)) {
   console.log('Uploads directory does not exist, creating it...');
   fs.mkdirSync(uploadsPath, { recursive: true });
@@ -228,7 +218,7 @@ mongoose.connect(MONGODB_URI, {
     }
   }
   
-  // 启动服务器
+  // 启动服务器（只在这里启动一次）
   const PORT = process.env.PORT || 8765;
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server is running on port ${PORT}`);
@@ -561,17 +551,17 @@ io.on('connection', (socket) => {
   });
 });
 
-// 启动服务器
+// 启动服务器（已移至此处避免重复启动）
 const PORT = process.env.PORT || 8765;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server is running on port ${PORT}`);
-  console.log('Uploads directory path:', uploadsPath);
-  
-  // 验证uploads目录中是否有文件
-  try {
-    const files = fs.readdirSync(uploadsPath);
-    console.log('Files in uploads directory:', files);
-  } catch (err) {
-    console.error('Failed to read uploads directory:', err);
-  }
-});
+// server.listen(PORT, '0.0.0.0', () => {
+//   console.log(`Server is running on port ${PORT}`);
+//   console.log('Uploads directory path:', uploadsPath);
+//   
+//   // 验证uploads目录中是否有文件
+//   try {
+//     const files = fs.readdirSync(uploadsPath);
+//     console.log('Files in uploads directory:', files);
+//   } catch (err) {
+//     console.error('Failed to read uploads directory:', err);
+//   }
+// });
