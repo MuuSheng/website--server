@@ -10,17 +10,17 @@ export default defineConfig({
     strictPort: false,
     proxy: {
       '/api': {
-        target: 'http://localhost:26314',
+        target: 'http://localhost:8765',
         changeOrigin: true,
         secure: false
       },
       '/socket.io': {
-        target: 'http://localhost:26314',
+        target: 'http://localhost:8765',
         changeOrigin: true,
         secure: false
       },
       '/uploads': {
-        target: 'http://localhost:26314',
+        target: 'http://localhost:8765',
         changeOrigin: true,
         secure: false
       }
