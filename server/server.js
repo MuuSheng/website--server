@@ -582,7 +582,3 @@ server.listen(PORT, '0.0.0.0', () => {
     console.error('Failed to read uploads directory:', err);
   }
 });
-}).catch((error) => {
-  console.error('MongoDB connection error:', error);
-  process.exit(1);
-});
